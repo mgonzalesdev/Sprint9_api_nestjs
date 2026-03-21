@@ -21,7 +21,7 @@ export class UsersService {
       throw new ConflictException('El correo electrónico ya está registrado');
     }
 
-    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = this.usersRepository.create({
       ...createUserDto,
       password: hashedPassword,
@@ -57,7 +57,7 @@ export class UsersService {
   async findOneByEmail(email: string) {
     return await this.usersRepository.findOne({
       where: { email },
-      select: ['id', 'email', 'password', 'role'] // Forzamos que traiga el password
+      select: ['id', 'email', 'password', 'role','name'] // Forzamos que traiga el password
     });
   }
 }

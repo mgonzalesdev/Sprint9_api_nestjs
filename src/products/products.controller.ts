@@ -1,9 +1,9 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, UseGuards, Req } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
-import { Role } from 'src/common/enums/role.enum';
+import { UserRole } from 'src/common/enums/role.enum';
 import { AuthGuard } from '@nestjs/passport';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { Roles } from 'src/auth/roles.decorators';
@@ -28,13 +28,22 @@ export class ProductsController {
     return this.productsService.findAllConditions();
   }
 
-  
-  @Post()
-   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN) // Solo el Admin puede registrar productos
+
+  /*@Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.USER) // Solo el Admin puede registrar productos
   create(@Body() createProductDto: CreateProductDto) {
     return this.productsService.create(createProductDto);
+  }*/
+  @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.USER)
+  create(@Body() createProductDto: CreateProductDto, @Req() req) {
+    // Seguridad: Forzamos que el propietario sea el ID del Token, no el del Body
+    const userId = req.user.userId;
+    return this.productsService.create({ ...createProductDto, userId });
   }
+
 
   @Get()
   findAll() {
@@ -46,9 +55,12 @@ export class ProductsController {
     return this.productsService.findOne(id);
   }
 
+
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto) {
-    return this.productsService.update(+id, updateProductDto);
+  @UseGuards(JwtAuthGuard)
+  update(@Param('id', ParseIntPipe) id: number, @Body() updateProductDto: UpdateProductDto, @Req() req // 👈 Recibimos el usuario del Token
+  ) {
+    return this.productsService.update(id, updateProductDto, req.user);
   }
 
   @Delete(':id')

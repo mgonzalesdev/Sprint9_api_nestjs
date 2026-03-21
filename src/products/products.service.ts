@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -23,12 +23,12 @@ export class ProductsService {
     const newProduct = this.productRepository.create({
       name: createProductDto.name,
       description: createProductDto.description,
-      latitude: createProductDto.latitude,
-      longitude: createProductDto.longitude,
-      user: { id: createProductDto.userId },
-      category: { id: createProductDto.categoryId },
-      condition: { id: createProductDto.conditionId },
-      status: { id: createProductDto.statusId },
+      latitude: Number(createProductDto.latitude),
+      longitude: Number(createProductDto.longitude),
+      user: { id: +createProductDto.userId },
+      category: { id: +createProductDto.categoryId },
+      condition: { id: +createProductDto.conditionId },
+      status: { id: +createProductDto.statusId },
     });
 
     return await this.productRepository.save(newProduct);
@@ -60,8 +60,11 @@ export class ProductsService {
   }
 
 
-  async update(id: number, updateProductDto: UpdateProductDto): Promise<Product> {
+  async update(id: number, updateProductDto: UpdateProductDto, currentUser: any): Promise<Product> {
     const product = await this.findOne(id);
+    if (product.user.id !== currentUser.userId && currentUser.role !== 'admin') {
+      throw new ForbiddenException('No tienes permiso para modificar este producto');
+    }
     const updatedProduct = this.productRepository.merge(product, {
       ...updateProductDto,
       user: updateProductDto.userId ? { id: updateProductDto.userId } : product.user,

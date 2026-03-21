@@ -16,7 +16,7 @@ const app = await NestFactory.create(AppModule);
   // -----------------------------
 
   app.useGlobalPipes(new ValidationPipe());
-  
+  console.log(process.env.JWT_SECRET)
   await app.listen(3000);
   console.log(`Application is running on: ${await app.getUrl()}`);
 

@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Product } from 'src/products/entities/product.entity';
+import { User } from 'src/users/entities/user.entity';
+import { UserRole } from 'src/common/enums/role.enum';
 
 
 @Injectable()
@@ -9,6 +11,8 @@ export class StatsService {
     constructor(
         @InjectRepository(Product)
         private readonly productRepository: Repository<Product>,
+        @InjectRepository(User)
+        private readonly userRepository: Repository<User>,
     ) { }
 
     // Datos para (Pie)
@@ -25,7 +29,7 @@ export class StatsService {
     async getBarChartData() {
         return await this.productRepository
             .createQueryBuilder('product')
-            .select("DATE_FORMAT(product.publicationDate, '%Y-%m')", 'month')
+            .select("DATE_FORMAT(product.publicationDate, '%m/%Y')", 'month')
             .addSelect('COUNT(product.id)', 'total')
             .where('product.publicationDate >= DATE_SUB(NOW(), INTERVAL 6 MONTH)')
             .groupBy('month')
@@ -34,8 +38,15 @@ export class StatsService {
     }
 
     async getSummary() {
-        const totalProducts = await this.productRepository.count();
-        const activeProducts = await this.productRepository.count({ where: { status: { name: 'Disponible' } } });
-        return { totalProducts, activeProducts };
+        const [totalProducts, activeProducts, totalUsers] = await Promise.all([
+            this.productRepository.count(),
+            this.productRepository.count({ where: { status: { name: 'Disponible' } } }),
+
+            this.userRepository.count({
+                where: { role: UserRole.USER } 
+            }),
+        ]);
+
+        return { totalProducts, activeProducts, totalUsers };
     }
 }
