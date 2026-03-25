@@ -7,6 +7,7 @@ import { StatsModule } from './stats/stats.module';
 import { AuthModule } from './auth/auth.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { AiModule } from './genkit/ai.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { AppService } from './app.service';
     ProductsModule,
     StatsModule,
     AuthModule,
+    AiModule
   ],
   controllers: [AppController],
   providers: [AppService],

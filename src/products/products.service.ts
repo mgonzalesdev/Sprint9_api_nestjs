@@ -19,12 +19,13 @@ export class ProductsService {
 
   ) { }
 
-  async create(createProductDto: CreateProductDto) {
+  async create(createProductDto: any) {
     const newProduct = this.productRepository.create({
       name: createProductDto.name,
       description: createProductDto.description,
       latitude: Number(createProductDto.latitude),
       longitude: Number(createProductDto.longitude),
+      image: createProductDto.image,
       user: { id: +createProductDto.userId },
       category: { id: +createProductDto.categoryId },
       condition: { id: +createProductDto.conditionId },
@@ -43,7 +44,8 @@ export class ProductsService {
   async findByUserId(userId: number): Promise<Product[]> {
     return await this.productRepository.find({
       where: { user: { id: userId } },
-      relations: ['category', 'condition', 'status']
+      relations: ['category', 'condition', 'status', 'user'],
+      order: { id: 'DESC' }
     });
   }
 
@@ -58,7 +60,6 @@ export class ProductsService {
     }
     return product;
   }
-
 
   async update(id: number, updateProductDto: UpdateProductDto, currentUser: any): Promise<Product> {
     const product = await this.findOne(id);

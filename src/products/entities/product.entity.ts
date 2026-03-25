@@ -6,7 +6,7 @@ import { ConditionEntity } from "./condition.entity";
 
 @Entity('products')
 export class Product {
- 
+
     @PrimaryGeneratedColumn()
     id: number;
 
@@ -18,17 +18,19 @@ export class Product {
 
     @CreateDateColumn()
     publicationDate: Date;
-    
+
     @Column({ type: 'decimal', precision: 10, scale: 8, nullable: true })
     latitude: number;
 
     @Column({ type: 'decimal', precision: 11, scale: 8, nullable: true })
     longitude: number;
 
+    @Column({ nullable: true })
+    image: string;
     // RELACIONES (Solo generan una columna ID en MySQL)
 
     @ManyToOne(() => User, { nullable: false, onDelete: 'CASCADE' })
-    user: User; 
+    user: User;
 
     @ManyToOne(() => CategoryEntity, { nullable: false })
     category: CategoryEntity;

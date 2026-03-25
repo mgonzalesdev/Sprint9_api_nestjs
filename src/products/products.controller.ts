@@ -1,16 +1,20 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, UseGuards, Req, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { UserRole } from 'src/common/enums/role.enum';
-import { AuthGuard } from '@nestjs/passport';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { Roles } from 'src/auth/roles.decorators';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
 
 @Controller('products')
 export class ProductsController {
-  constructor(private readonly productsService: ProductsService) { }
+  constructor(
+    private readonly productsService: ProductsService,
+    private readonly cloudinaryService: CloudinaryService,
+  ) { }
 
   //Catalog  
   @Get('categories')
@@ -28,22 +32,28 @@ export class ProductsController {
     return this.productsService.findAllConditions();
   }
 
-
-  /*@Post()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.USER) // Solo el Admin puede registrar productos
-  create(@Body() createProductDto: CreateProductDto) {
-    return this.productsService.create(createProductDto);
-  }*/
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.USER)
-  create(@Body() createProductDto: CreateProductDto, @Req() req) {
-    // Seguridad: Forzamos que el propietario sea el ID del Token, no el del Body
+  @UseInterceptors(FileInterceptor('image'))
+  async create(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() createProductDto: any,
+    @Req() req
+  ) {
+    // Cloudinary devuelve la URL en file.path
+    //console.log('Archivo recibido:', file);
+    const result = await this.cloudinaryService.uploadImage(file);
+    const imageUrl = result?.secure_url || null;
+    //console.log('URL generada por Cloudinary:', imageUrl);
     const userId = req.user.userId;
-    return this.productsService.create({ ...createProductDto, userId });
-  }
 
+    return this.productsService.create({
+      ...createProductDto,
+      userId,
+      image: imageUrl
+    });
+  }
 
   @Get()
   findAll() {
@@ -58,7 +68,8 @@ export class ProductsController {
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
-  update(@Param('id', ParseIntPipe) id: number, @Body() updateProductDto: UpdateProductDto, @Req() req // 👈 Recibimos el usuario del Token
+  update(@Param('id', ParseIntPipe) id: number,
+    @Body() updateProductDto: UpdateProductDto, @Req() req
   ) {
     return this.productsService.update(id, updateProductDto, req.user);
   }
@@ -68,5 +79,11 @@ export class ProductsController {
     return this.productsService.remove(+id);
   }
 
+  @Get('user/my-products')
+  @UseGuards(JwtAuthGuard)
+  async findMyProducts(@Req() req) {
+    const userId = req.user.userId; // Extraído del JWT por el JwtStrategy
+    return this.productsService.findByUserId(userId);
+  }
 
 }
