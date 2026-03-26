@@ -24,14 +24,16 @@ export class AuthService {
 
     return this.generateToken(user);
   }
+  
   async register(createUserDto: CreateUserDto) {
     const newUser = await this.usersService.create(createUserDto);
     return this.generateToken(newUser);
   }
+
   private async generateToken(user: any) {
     const payload = { sub: user.id, email: user.email, role: user.role };
     return {
-      access_token: await this.jwtService.signAsync(payload),
+      accessToken: await this.jwtService.signAsync(payload),
       user: { id: user.id, name: user.name, email: user.email, role: user.role }
     };
   }
